@@ -1,1 +1,1 @@
-runner  ALL=(root) NOPASSWD:NOPASSWD: /usr/bin/chown -R runner:docker /runner
+runner  ALL=(root) NOPASSWD: /bin/chown -R runner\:docker /runner

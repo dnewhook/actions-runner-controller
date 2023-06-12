@@ -7,7 +7,9 @@ ARG RUNNER_CONTAINER_HOOKS_VERSION
 ENV CHANNEL=stable
 ARG DOCKER_COMPOSE_VERSION=v2.16.0
 ARG DUMB_INIT_VERSION=1.2.5
-ARG RUNNER_USER_UID=1000
+# Use 1001 and 121 for compatibility with GitHub-hosted runners
+ARG RUNNER_UID=1000
+ARG DOCKER_GID=1001
 
 # Other arguments
 ARG DEBUG=false
@@ -27,13 +29,10 @@ RUN dnf --disableplugin=subscription-manager --disablerepo=* --enablerepo=ubi-9-
 RUN update-crypto-policies --set DEFAULT:SHA1
 
 # Runner user
-#RUN groupadd docker; \
-#    useradd --uid $RUNNER_USER_UID -g runner -G docker runner; \
-#    echo -e "runner:165536:65536" >> /etc/subuid; \
-#    echo -e "runner:165536:65536" >> /etc/subgid;
-RUN groupadd --gid $RUNNER_USER_UID runner; \
-    useradd --uid $RUNNER_USER_UID -g runner runner; \
-    echo -e "runner:1:999\nrunner:1001:64535" > /etc/subuid; \
+RUN groupadd docker --gid $DOCKER_GID; \
+    groupadd runner --gid $RUNNER_UID
+RUN useradd --uid $RUNNER_UID -g runner -G docker runner
+RUN echo -e "runner:1:999\nrunner:1001:64535" > /etc/subuid; \
     echo -e "runner:1:999\nrunner:1001:64535" > /etc/subgid
 
 ENV HOME=/home/runner
@@ -79,8 +78,8 @@ ADD podman-containers.conf /home/runner/.config/containers/containers.conf
 ADD registries.conf /home/runner/.config/containers/registries.conf
 ADD sudoers_pind /etc/sudoers.d/runner
 ADD docker-config.json "$RUNNER_ASSETS_DIR"/.docker/config.json
-RUN chown runner:runner -R /home/runner; \
-    ln -s /run/user/$RUNNER_USER_UID/podman/podman.sock /var/run/docker.sock; \
+RUN chown -R runner:runner /home/runner; \
+    ln -s /run/user/$RUNNER_UID/podman/podman.sock /var/run/docker.sock; \
     ln -s /runner/.docker/config.json /home/runner/.docker/config.json
 VOLUME /home/runner/.local/share/containers
 
@@ -100,8 +99,8 @@ RUN mkdir -p /var/lib/shared/overlay-images \
 # Add the Python "User Script Directory" to the PATH
 ENV PATH="${PATH}:${HOME}/.local/bin:/home/runner/bin"
 ENV ImageOS=ubi9
-ENV DOCKER_HOST=unix:///run/user/$RUNNER_USER_UID/docker.sock
-ENV XDG_RUNTIME_DIR=/run/user/$RUNNER_USER_UID
+ENV DOCKER_HOST=unix:///run/user/$RUNNER_UID/docker.sock
+ENV XDG_RUNTIME_DIR=/run/user/$RUNNER_UID
 ENV LANG=en_US.UTF-8
 ENV _CONTAINERS_USERNS_CONFIGURED=""
 ENV _BUILDAH_STARTED_IN_USERNS=""
