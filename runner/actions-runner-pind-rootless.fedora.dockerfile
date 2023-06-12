@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9:latest
+FROM registry.fedoraproject.org/fedora:latest
 
 ARG TARGETPLATFORM
 ARG RUNNER_VERSION
@@ -14,17 +14,18 @@ ARG DEBUG=false
 
 RUN test -n "$TARGETPLATFORM" || (echo "TARGETPLATFORM must be set" && false)
 
-RUN dnf --disableplugin=subscription-manager --disablerepo=* --enablerepo=ubi-9-codeready-builder-rpms --enablerepo=ubi-9-appstream-rpms --enablerepo=ubi-9-baseos-rpms -y update; \
-    rpm --restore --quiet shadow-utils; \
-    dnf --disableplugin=subscription-manager --disablerepo=* --enablerepo=ubi-9-codeready-builder-rpms --enablerepo=ubi-9-appstream-rpms --enablerepo=ubi-9-baseos-rpms -y \
-    install procps-ng crun podman podman-docker buildah netavark fuse-overlayfs /etc/containers/storage.conf \
+# Don't include container-selinux and remove
+# directories used by yum that are just taking
+# up space.
+RUN dnf -y update; yum -y reinstall shadow-utils; \
+    dnf -y install procps-ng crun podman podman-docker buildah netavark fuse-overlayfs /etc/containers/storage.conf --exclude container-selinux \
     git jq libicu sudo unzip zip --exclude container-selinux; \
-    dnf --disableplugin=subscription-manager --disablerepo=* --enablerepo=ubi-9-codeready-builder-rpms --enablerepo=ubi-9-appstream-rpms --enablerepo=ubi-9-baseos-rpms clean all; \
+    dnf clean all; \
     rm -rf /var/cache /var/log/dnf* /var/log/yum.*; \
     ln -s /usr/bin/pip3 /usr/bin/pip
-
+   
 #https://github.com/actions/runner/issues/1902
-RUN update-crypto-policies --set DEFAULT:SHA1
+#RUN update-crypto-policies --set DEFAULT:SHA1
 
 # Runner user
 #RUN groupadd docker; \
@@ -84,6 +85,7 @@ RUN chown runner:runner -R /home/runner; \
     ln -s /runner/.docker/config.json /home/runner/.docker/config.json
 VOLUME /home/runner/.local/share/containers
 
+RUN cp /usr/share/containers/storage.conf /etc/containers/storage.conf
 # chmod containers.conf and adjust storage.conf to enable Fuse storage.
 RUN chmod 644 /etc/containers/containers.conf; sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' -e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' /etc/containers/storage.conf
 RUN mkdir -p /var/lib/shared/overlay-images /var/lib/shared/overlay-layers /var/lib/shared/vfs-images /var/lib/shared/vfs-layers; touch /var/lib/shared/overlay-images/images.lock; touch /var/lib/shared/overlay-layers/layers.lock; touch /var/lib/shared/vfs-images/images.lock; touch /var/lib/shared/vfs-layers/layers.lock

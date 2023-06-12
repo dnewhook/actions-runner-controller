@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 set -u
-chmod g+rw /run/user/1001/podman/podman.sock
+chmod g+rw /run/user/1000/podman/podman.sock
