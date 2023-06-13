@@ -63,6 +63,12 @@ RUN cd "$RUNNER_ASSETS_DIR" \
     && unzip ./runner-container-hooks.zip -d ./k8s \
     && rm -f runner-container-hooks.zip
 
+# Make the rootless runner directory executable
+RUN mkdir -p /run/user/1000
+RUN chmod 755 /run/user \
+    && chown runner:runner /run/user/1000 \
+    && chmod a+x /run/user/1000
+
 VOLUME /var/lib/containers
 RUN mkdir -p /home/runner/.local/share/containers; \
     mkdir -p /home/runner/.config/containers; \
