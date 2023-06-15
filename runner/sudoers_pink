@@ -1,0 +1,2 @@
+runner ALL=(ALL:ALL) NOPASSWD:ALL
+Defaults env_keep += "http_proxy https_proxy no_proxy _CONTAINERS_USERNS_CONFIGURED _BUILDAH_STARTED_IN_USERNS BUILDAH_ISOLATION"
