@@ -20,7 +20,7 @@ RUN test -n "$TARGETPLATFORM" || (echo "TARGETPLATFORM must be set" && false)
 # directories used by yum that are just taking
 # up space.
 RUN dnf -y update; yum -y reinstall shadow-utils; \
-    dnf -y install procps-ng crun podman podman-docker buildah netavark iptables-nft fuse-overlayfs /etc/containers/storage.conf \
+    dnf -y install procps-ng crun podman podman-docker buildah netavark iptables-nft fuse-overlayfs /etc/containers/storage.conf --exclude container-selinux \
     git jq libicu sudo unzip zip --exclude container-selinux; \
     dnf clean all; \
     rm -rf /var/cache /var/log/dnf* /var/log/yum.*; \
@@ -61,38 +61,39 @@ RUN cd "$RUNNER_ASSETS_DIR" \
     && unzip ./runner-container-hooks.zip -d ./k8s \
     && rm -f runner-container-hooks.zip
 
-# Make the runner directory executable
-RUN mkdir -p /run/podman
-RUN chmod 755 /run/podman \
-    && chown runner:runner /run/podman \
-    && chmod g+s /run/podman \
-    && chmod a+x /run/podman
+# Make the rootless runner directory executable
+RUN mkdir -p /run/user/1000
+RUN chmod 755 /run/user \
+    && chown runner:runner /run/user/1000 \
+    && chmod a+x /run/user/1000
 
 VOLUME /var/lib/containers
 RUN mkdir -p /home/runner/.local/share/containers; \
-    mkdir -p /root/.config/containers; \
+    mkdir -p /home/runner/.config/containers; \
+    mkdir -p /home/runner/.config/systemd/user; \
     mkdir -p /home/runner/.docker; \
     mkdir /github; \
     touch /etc/containers/nodocker; \
     ln -s /home/runner /github/home
 
+#ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf /etc/containers/containers.conf
+ADD containers.conf /etc/containers/containers.conf
 #https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf
-ADD containers-rootful.conf /etc/containers/containers.conf
-#https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf
-#ADD podman-containers.conf /root/.config/containers/containers.conf
-#ADD registries.conf /root/.config/containers/registries.conf
+ADD containers-rootless.conf /home/runner/.config/containers/containers.conf
+ADD registries.conf /home/runner/.config/containers/registries.conf
+#ADD sudoers_pind /etc/sudoers.d/runner
 ADD sudoers_pink /etc/sudoers.d/runner
 ADD docker-config.json "$RUNNER_ASSETS_DIR"/.docker/config.json
 RUN chown -R runner:runner /home/runner; \
-    ln -s /run/podman/podman.sock /var/run/docker.sock; \
+    ln -s /run/user/$RUNNER_UID/podman/podman.sock /var/run/docker.sock; \
     ln -s /runner/.docker/config.json /home/runner/.docker/config.json
 VOLUME /home/runner/.local/share/containers
 
 RUN cp /usr/share/containers/storage.conf /etc/containers/storage.conf
-#RUN cp /usr/share/containers/containers.conf /etc/containers/containers.conf
 # chmod containers.conf and adjust storage.conf to enable Fuse storage.
 RUN chmod 644 /etc/containers/containers.conf; sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' -e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' /etc/containers/storage.conf
-#RUN chmod 644 /etc/containers/containers.conf; sed -i -e 's|^mount_program|#mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' -e 's|^mountopt|#mountopt|g' /etc/containers/storage.conf
+#https://github.com/containers/podman/issues/14780
+RUN mkdir -p /var/lib/cni /var/lib/shared/overlay-images /var/lib/shared/overlay-layers /var/lib/shared/vfs-images /var/lib/shared/vfs-layers; touch /var/lib/shared/overlay-images/images.lock; touch /var/lib/shared/overlay-layers/layers.lock; touch /var/lib/shared/vfs-images/images.lock; touch /var/lib/shared/vfs-layers/layers.lock
 
 RUN mkdir -p /var/lib/shared/overlay-images \
              /var/lib/shared/overlay-layers \
@@ -106,14 +107,17 @@ RUN mkdir -p /var/lib/shared/overlay-images \
 # Add the Python "User Script Directory" to the PATH
 ENV PATH="${PATH}:${HOME}/.local/bin:/home/runner/bin"
 ENV ImageOS=ubi9
+ENV DOCKER_HOST=unix:///run/user/$RUNNER_UID/docker.sock
+ENV XDG_RUNTIME_DIR=/run/user/$RUNNER_UID
 ENV LANG=en_US.UTF-8
-ENV CONTAINER_HOST=unix:///run/podman/podman.sock
 ENV _CONTAINERS_USERNS_CONFIGURED=""
 ENV _BUILDAH_STARTED_IN_USERNS=""
 ENV BUILDAH_ISOLATION=chroot
 
 RUN echo "PATH=${PATH}" > /etc/environment \
     && echo "ImageOS=${ImageOS}" >> /etc/environment \
+    && echo "DOCKER_HOST=${DOCKER_HOST}" >> /etc/environment \
+    && echo "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}" >> /etc/environment \
     && echo "LANG=${LANG}" >> /etc/environment \
     && echo "_CONTAINERS_USERNS_CONFIGURED=${_CONTAINERS_USERNS_CONFIGURED}" >> /etc/environment \
     && echo "_BUILDAH_STARTED_IN_USERNS=${_BUILDAH_STARTED_IN_USERNS}" >> /etc/environment \
@@ -121,14 +125,14 @@ RUN echo "PATH=${PATH}" > /etc/environment \
 
 # We place the scripts in `/usr/bin` so that users who extend this image can
 # override them with scripts of the same name placed in `/usr/local/bin`.
-COPY entrypoint-pink.sh startup-pink.sh logger.sh graceful-stop.sh update-status /usr/bin/
+COPY entrypoint-pind-rootless.sh startup.sh logger.sh graceful-stop.sh update-status /usr/bin/
 
 # Configure hooks folder structure.
-COPY hooks-pink /etc/arc/hooks/
+COPY hooks-pind /etc/arc/hooks/
 
 # No group definition, as that makes it harder to run docker.
 USER runner
 
 
 ENTRYPOINT ["/bin/bash", "-c"]
-CMD ["entrypoint-pink.sh"]
+CMD ["entrypoint-pind-rootless.sh"]
