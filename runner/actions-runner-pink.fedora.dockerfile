@@ -121,14 +121,14 @@ RUN echo "PATH=${PATH}" > /etc/environment \
 
 # We place the scripts in `/usr/bin` so that users who extend this image can
 # override them with scripts of the same name placed in `/usr/local/bin`.
-COPY entrypoint-pink.sh startup-pink.sh logger.sh graceful-stop.sh update-status /usr/bin/
+COPY entrypoint-pink-rootful.sh startup.sh logger.sh wait.sh graceful-stop.sh update-status /usr/bin/
 
 # Configure hooks folder structure.
-COPY hooks-pink /etc/arc/hooks/
+COPY hooks /etc/arc/hooks/
 
 # No group definition, as that makes it harder to run docker.
 USER runner
 
 
 ENTRYPOINT ["/bin/bash", "-c"]
-CMD ["entrypoint-pink.sh"]
+CMD ["entrypoint-pink-rootful.sh"]

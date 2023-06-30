@@ -10,7 +10,7 @@ RUNNER_HOME=${RUNNER_HOME:-/runner}
 # for it to become a valid hook script, otherwise GitHub will fail to run the hook
 export ACTIONS_RUNNER_HOOK_JOB_STARTED=/etc/arc/hooks/job-started.sh
 export ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/etc/arc/hooks/job-completed.sh
-export CONTAINER_HOME=unix:///run/podman/podman.sock
+export CONTAINER_HOST=unix:///run/podman/podman.sock
 
 if [ -n "${STARTUP_DELAY_IN_SECONDS}" ]; then
   log.notice "Delaying startup by ${STARTUP_DELAY_IN_SECONDS} seconds"

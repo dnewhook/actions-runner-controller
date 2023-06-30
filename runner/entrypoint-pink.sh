@@ -12,8 +12,7 @@ dumb-init bash <<'SCRIPT' &
 # for not only podman socket but also the runner agent.
 sudo podman system service --time=0 &
 
-startup-pink.sh
-sudo chmod 660 /run/podman/podman.sock
+startup.sh
 SCRIPT
 
 RUNNER_INIT_PID=$!
