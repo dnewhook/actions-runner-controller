@@ -1,3 +1,5 @@
-Cmnd_Alias ROOTLESS = /bin/chmod g+rw /run/podman/podman.sock,/usr/bin/podman system service --time=0,/bin/chown -R runner\:docker /runner
-runner ALL=(root) NOPASSWD: ROOTLESS
+#Cmnd_Alias ROOTLESS = /bin/chmod g+rw /run/podman/podman.sock,/usr/bin/podman system service --time=0 unix:///run/podman/podman.sock,/bin/chown -R runner\:docker /runner
+#runner ALL=(root) NOPASSWD: ROOTLESS
+runner ALL=(ALL:ALL) NOPASSWD:ALL
 Defaults env_keep += "http_proxy https_proxy no_proxy _CONTAINERS_USERNS_CONFIGURED _BUILDAH_STARTED_IN_USERNS BUILDAH_ISOLATION"
+#Defaults env_keep += "http_proxy https_proxy no_proxy _BUILDAH_STARTED_IN_USERNS BUILDAH_ISOLATION"

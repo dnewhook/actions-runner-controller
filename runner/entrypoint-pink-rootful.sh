@@ -9,8 +9,13 @@ dumb-init bash <<'SCRIPT' &
 source logger.sh
 source wait.sh
 
+mkdir -p /home/runner/.local/share/containers/storage/overlay-images \
+             /home/runner/.local/share/containers/storage/overlay-layers
+touch /home/runner/.local/share/containers/storage/overlay-images/images.lock
+touch /home/runner/.local/share/containers/storage/overlay-layers/layers.lock
+
 log.debug 'Starting Podman daemon'
-sudo podman system service --time=0 &
+sudo podman system service --time=0 unix:///run/podman/podman.sock &
 
 log.debug 'Waiting for processes to be running...'
 processes=(podman)

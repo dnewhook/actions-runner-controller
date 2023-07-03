@@ -70,17 +70,19 @@ RUN chmod 755 /run/podman \
 
 VOLUME /var/lib/containers
 RUN mkdir -p /home/runner/.local/share/containers; \
-    mkdir -p /root/.config/containers; \
+    mkdir -p /home/runner/.config/containers; \
     mkdir -p /home/runner/.docker; \
     mkdir /github; \
     touch /etc/containers/nodocker; \
     ln -s /home/runner /github/home
 
+ADD podman-containers.conf /home/runner/.config/containers/containers.conf
+
 #https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf
 ADD containers-rootful.conf /etc/containers/containers.conf
 #https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf
-#ADD podman-containers.conf /root/.config/containers/containers.conf
-#ADD registries.conf /root/.config/containers/registries.conf
+ADD podman-containers.conf /home/runner/.config/containers/containers.conf
+ADD registries.conf /home/runner/.config/containers/registries.conf
 ADD sudoers_pink /etc/sudoers.d/runner
 ADD docker-config.json "$RUNNER_ASSETS_DIR"/.docker/config.json
 RUN chown -R runner:runner /home/runner; \
@@ -91,17 +93,9 @@ VOLUME /home/runner/.local/share/containers
 RUN cp /usr/share/containers/storage.conf /etc/containers/storage.conf
 #RUN cp /usr/share/containers/containers.conf /etc/containers/containers.conf
 # chmod containers.conf and adjust storage.conf to enable Fuse storage.
-RUN chmod 644 /etc/containers/containers.conf; sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' -e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' /etc/containers/storage.conf
+#RUN chmod 644 /etc/containers/containers.conf; sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' -e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' /etc/containers/storage.conf
 #RUN chmod 644 /etc/containers/containers.conf; sed -i -e 's|^mount_program|#mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' -e 's|^mountopt|#mountopt|g' /etc/containers/storage.conf
-
-RUN mkdir -p /var/lib/shared/overlay-images \
-             /var/lib/shared/overlay-layers \
-             /var/lib/shared/vfs-images \
-             /var/lib/shared/vfs-layers && \
-    touch /var/lib/shared/overlay-images/images.lock && \
-    touch /var/lib/shared/overlay-layers/layers.lock && \
-    touch /var/lib/shared/vfs-images/images.lock && \
-    touch /var/lib/shared/vfs-layers/layers.lock
+RUN chmod 644 /etc/containers/containers.conf; sed -i -e 's|^mount_program|#mount_program|g' -e '/additionalimage.*/a "/home/runner/.local/share/containers/storage",' -e 's|^mountopt|#mountopt|g' /etc/containers/storage.conf
 
 # Add the Python "User Script Directory" to the PATH
 ENV PATH="${PATH}:${HOME}/.local/bin:/home/runner/bin"
