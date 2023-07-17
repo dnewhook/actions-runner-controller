@@ -15,3 +15,19 @@ function wait_for_process () {
     done
     return 0
 }
+
+function wait_for_socket () {
+    local max_time_wait=30
+    local socketspec="$1"
+    local waited_sec=0
+    while [ ! -S $socketspec ]; do
+        log.debug "Socket $socketspec is not available yet. Retrying in 1 seconds"
+	log.debug "Waited $waited_sec seconds of $max_time_wait seconds"
+	sleep 1
+	((waited_sec=waited_sec+1))
+        if ((waited_sec >= max_time_wait)); then
+            return 1
+        fi
+    done
+    return 0
+}
