@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-set -u
-sudo chmod g+rw /run/podman/podman.sock

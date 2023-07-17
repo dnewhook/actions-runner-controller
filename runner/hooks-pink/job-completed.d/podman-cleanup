@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-set -u
-podman system prune --all --force && podman rmi --all -f
