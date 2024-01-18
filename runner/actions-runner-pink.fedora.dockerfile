@@ -1,11 +1,13 @@
 FROM registry.fedoraproject.org/fedora:latest
+#docker build   --build-arg="RUNNER_VERSION=2.311.0"   --build-arg="RUNNER_CONTAINER_HOOKS_VERSION=0.5.0"   --build-arg="TARGETPLATFORM=amd64" \
+# -t registry-hub.prd.harbor.vodafone.com/vf-sec-projecta/actions-runner-pink:fedora-latest  -f actions-runner-pink.fedora.dockerfile
 
 ARG TARGETPLATFORM
 ARG RUNNER_VERSION
 ARG RUNNER_CONTAINER_HOOKS_VERSION
 # Docker and Docker Compose arguments
 ENV CHANNEL=stable
-ARG DOCKER_COMPOSE_VERSION=v2.16.0
+ARG DOCKER_COMPOSE_VERSION=v2.23.0
 ARG DUMB_INIT_VERSION=1.2.5
 # Use 1001 and 121 for compatibility with GitHub-hosted runners
 ARG RUNNER_UID=1000
